@@ -1,1 +1,1 @@
-# Database-Kuharski-Receptii
+# Database-Kuharski-Recepti
