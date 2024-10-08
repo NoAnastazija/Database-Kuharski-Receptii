@@ -1,0 +1,387 @@
+#CREATE DATABASE kuharski_recepti;
+USE kuharski_recepti;
+
+
+DROP TABLE IF EXISTS Jedilnik_jedilnik_oseba;
+DROP TABLE IF EXISTS Recept_jedilnik;
+DROP TABLE IF EXISTS Jedilnik_oseba;
+DROP TABLE IF EXISTS Jedilnik;
+
+DROP TABLE IF EXISTS Vir_recept;
+DROP TABLE IF EXISTS Vir;
+DROP TABLE IF EXISTS Vrsta_vira;
+
+DROP TABLE IF EXISTS Jed;
+DROP TABLE IF EXISTS Vrsta_jedi;
+
+DROP TABLE IF EXISTS Cena_sestavine;
+DROP TABLE IF EXISTS Sestavina_proizvajalec;
+DROP TABLE IF EXISTS Posta;
+DROP TABLE IF EXISTS Naslov;
+DROP TABLE IF EXISTS Trgovina;
+DROP TABLE IF EXISTS Sestavina_recept;
+DROP TABLE IF EXISTS Proizvajalec;
+DROP TABLE IF EXISTS Drzava;
+DROP TABLE IF EXISTS Sestavina_jedi;
+DROP TABLE IF EXISTS Recept;
+
+CREATE TABLE Jedilnik_oseba(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL,
+    priimek VARCHAR(45) NOT NULL
+);
+
+CREATE TABLE Jedilnik_jedilnik_oseba(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    FK_Jedilnik INT NOT NULL,
+    FK_Jedilnik_oseba INT NOT NULL
+);
+
+ALTER TABLE Jedilnik_jedilnik_oseba
+ADD CONSTRAINT FOREIGN KEY(FK_Jedilnik) REFERENCES Jedilnik(id) ON DELETE RESTRICT;
+
+ALTER TABLE Jedilnik_jedilnik_oseba
+ADD CONSTRAINT FOREIGN KEY(FK_Jedilnik_oseba) REFERENCES Jedilnik_oseba(id) ON DELETE RESTRICT;
+
+CREATE TABLE Jedilnik(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    kdaj DATE NOT NULL,
+    namen VARCHAR(250) NOT NULL
+);
+
+CREATE TABLE Recept_jedilnik(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    FK_Jedilnik INT,
+    FK_Recept INT
+);
+
+ALTER TABLE Recept_jedilnik
+ADD CONSTRAINT FOREIGN KEY(FK_Jedilnik) REFERENCES Jedilnik(id) ON DELETE RESTRICT;
+
+ALTER TABLE Recept_jedilnik
+ADD CONSTRAINT FOREIGN KEY(FK_Recept) REFERENCES Recept(id) ON DELETE RESTRICT;
+
+
+CREATE TABLE Vrsta_vira(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    vrsta VARCHAR(45) NOT NULL
+);
+
+CREATE TABLE Vir(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL,
+    naslov VARCHAR(45),
+    avtor VARCHAR(45),
+    stran INT,
+    FK_Vir INT 
+);
+
+CREATE TABLE Vir_recept(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    FK_Recept INT, 
+    FK_Vir INT
+);
+
+ALTER TABLE Vir
+ADD CONSTRAINT FOREIGN KEY(FK_Vir) REFERENCES Vrsta_vira(id) ON DELETE RESTRICT;
+
+ALTER TABLE Vir_recept
+ADD CONSTRAINT FOREIGN KEY(FK_Recept) REFERENCES Recept(id) ON DELETE RESTRICT;
+
+ALTER TABLE Vir_recept
+ADD CONSTRAINT FOREIGN KEY(FK_Vir) REFERENCES Vir(id) ON DELETE RESTRICT;
+
+CREATE TABLE Jed(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL, 
+    FK_Vrsta_jedi INT
+);
+
+CREATE TABLE Vrsta_jedi(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    vrsta VARCHAR(45) NOT NULL
+);
+
+ALTER TABLE Jed
+ADD CONSTRAINT FOREIGN KEY(FK_Vrsta_jedi) REFERENCES Vrsta_jedi(id) ON DELETE RESTRICT;
+
+CREATE TABLE Posta(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    naziv VARCHAR(45) NOT NULL,
+    stevilka INT NOT NULL,
+    FK_Drzava INT
+);
+
+CREATE TABLE Drzava(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    naziv VARCHAR(45) NOT NULL
+);
+
+CREATE TABLE Naslov(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ulica VARCHAR(45) NOT NULL,
+    hisna_st VARCHAR(45),
+    FK_Posta INT
+);
+
+ALTER TABLE Posta
+ADD CONSTRAINT FOREIGN KEY(FK_Drzava) REFERENCES Drzava(id) ON DELETE RESTRICT;
+
+ALTER TABLE Naslov
+ADD CONSTRAINT FOREIGN KEY(FK_Posta) REFERENCES Posta(id) ON DELETE RESTRICT;
+
+CREATE TABLE Proizvajalec(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL,
+    naslov VARCHAR(45) NOT NULL,
+    FK_Drzava INT
+);
+
+CREATE TABLE Sestavina_jedi(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL
+); 
+
+CREATE TABLE Sestavina_proizvajalec(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    FK_Sestavina_jedi INT,
+    FK_Proizvajalec INT
+);
+
+ALTER TABLE Proizvajalec
+ADD CONSTRAINT FOREIGN KEY(FK_Drzava) REFERENCES Drzava(id) ON DELETE RESTRICT;
+
+ALTER TABLE Sestavina_proizvajalec
+ADD CONSTRAINT FOREIGN KEY(FK_Sestavina_jedi) REFERENCES Sestavina_jedi(id) ON DELETE RESTRICT;
+
+ALTER TABLE Sestavina_proizvajalec
+ADD CONSTRAINT FOREIGN KEY(FK_Proizvajalec) REFERENCES Proizvajalec(id) ON DELETE RESTRICT;
+
+CREATE TABLE Trgovina(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    ime VARCHAR(45) NOT NULL,
+    FK_Naslov INT
+);
+
+ALTER TABLE Trgovina
+ADD CONSTRAINT FOREIGN KEY(FK_Naslov) REFERENCES Naslov(id) ON DELETE RESTRICT;
+
+CREATE TABLE Cena_sestavine(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    znesek FLOAT NOT NULL,
+    datum_od DATE NOT NULL,
+    datum_do DATE,
+    FK_Sestavina_jedi INT,
+    FK_Trgovina INT
+);
+
+ALTER TABLE Cena_sestavine
+ADD CONSTRAINT FOREIGN KEY(FK_Sestavina_jedi) REFERENCES Sestavina_jedi(id) ON DELETE RESTRICT;
+
+ALTER TABLE Cena_sestavine
+ADD CONSTRAINT FOREIGN KEY(FK_Trgovina) REFERENCES Trgovina(id) ON DELETE RESTRICT;
+
+CREATE TABLE Sestavina_recept(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    kolicina INT NOT NULL,
+    FK_Sestavina_jedi INT,
+    FK_Recept INT
+);
+
+CREATE TABLE Recept(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    cas_priprave TIME NOT NULL,
+    cas_kuhanja TIME NOT NULL,
+    komentar VARCHAR(500) NOT NULL,
+    FK_Jed INT
+);
+
+ALTER TABLE Sestavina_recept
+ADD CONSTRAINT FOREIGN KEY(FK_Sestavina_jedi) REFERENCES Sestavina_jedi(id) ON DELETE RESTRICT;
+
+ALTER TABLE Sestavina_recept
+ADD CONSTRAINT FOREIGN KEY(FK_Recept) REFERENCES Recept(id) ON DELETE RESTRICT;
+
+ALTER TABLE Recept
+ADD CONSTRAINT FOREIGN KEY(FK_Jed) REFERENCES Jed(id) ON DELETE RESTRICT;
+
+INSERT INTO Vrsta_jedi(vrsta)
+VALUES('Mesna jed'), ('Zelenjavna jed'), ('Napitek'), ('Prigrizek'), ('Sladica');
+
+INSERT INTO Jed(ime, FK_Vrsta_jedi)
+VALUES('Srnin golaz', 1), ('Borovniceva pita', 5), ('Rice cake', 4), 
+('Pecenka', 1), ('Pomfri', 4), ('Mochi', 4), 
+('Suši', 4), ('Losos s prilogo', 2), ('Ramen s svinjino', 1), ('Smoothie', 3), ('Palacinke', 3);
+
+INSERT INTO Recept(cas_priprave, cas_kuhanja, komentar, FK_Jed)
+VALUES('00:05:00', '00:10:00', 'Najboljse palacinke, dodaj kateri koli preliv', 11), ('00:10:00', '05:10:00', 'Amazingly delicious!', 1), 
+('00:30:00', '02:10:00', 'Sveze borovnice', 2), ('00:15:00', '01:10:00', 'Super za potovanja', 3), 
+('01:05:00', '02:10:00', 'Okej', 4), 
+('00:15:00', '00:15:00', 'Vsem favorit', 5), ('02:05:00', '05:10:00', 'Tough but tasty, ice cream filling >>', 6), 
+('00:45:00', '01:00:00', 'Ene vrste rice cake ane?', 7), ('00:30:00', '00:15:00', 'Heathy and good', 8),
+ ('00:50:00', '03:10:00', 'Omgggg great!! healthy', 9), ('00:03:00', '00:01:00', 'For breakfastss', 10);
+
+INSERT INTO Vrsta_vira(vrsta)
+VALUES('Knjiga'), ('Lastni zapis'), ('Revija'), ('Z roko'), ('Ostalo');
+
+INSERT INTO Vir(ime, naslov, avtor, stran, FK_Vir)
+VALUES('Mochi', 'Japonski zakladi', 'Gojo Satoru', 12, 1), ('Sushi', 'Japonski zakladi', 'Gojo Satoru', 30, 1), ('Rice cake', 'Japonski zakladi', 'Gojo Satoru', 105, 1)
+, ('Ramen', 'Japonski zakladi', 'Gojo Satoru', 45, 1), ('Golaz', 'Recepti tedna', 'Heheh novie', 3, 3), ('Borovniceva pita', 'Pite', NULL , NULL, 4)
+, ('Pecenka', 'Za gurmane', 'Gurmanski spektatel', 20, 1), ('Pomfri', 'Za gurmane', 'Gurmanski spektatel', 5, 1), ('Smoothie', 'Napitki dneva', 'novie', NULL, 3)
+, ('Palacinke', 'Dbest palacinke', NULL, NULL, 5), ('Losos', 'Ribe', NULL, NULL, 5);
+
+
+INSERT INTO Vir_recept(FK_Recept, FK_Vir)
+VALUES(1, 11), (2, 1), (3, 2), 
+(4, 3), (5, 4), (6, 5), 
+(7, 6), (8, 7), (9, 8), (10, 9), (11, 10);
+
+INSERT INTO Jedilnik_oseba(ime, priimek)
+VALUES('Ana', 'Novak'), ('Harry', 'Singh'), ('Matthew', 'Meow'), ('Gojo', 'Satoru'), ('Yuji', 'Sukuna');
+
+INSERT INTO Jedilnik(kdaj, namen)
+VALUES('2024-05-29', 'Meeting'), ('2024-06-6', 'Date'), ('2024-10-20', 'Vacation'), ('2024-12-30', 'Birthday'), ('2025-01-03', 'Meeting');
+
+INSERT INTO Jedilnik_jedilnik_oseba(FK_Jedilnik, FK_Jedilnik_oseba)
+VALUES(1, 1), (2, 2), (3, 4), 
+(4, 2), (5, 4), (1, 5), 
+(2, 4), (3, 3), (4, 2), (5, 4);
+
+
+INSERT INTO Recept_jedilnik(FK_Jedilnik, FK_Recept)
+VALUES(1, 2), (2, 10), (3, 2), 
+(4, 1), (5, 4), (1, 9), 
+(2, 10), (3, 2), (4, 2), (5, 1);
+
+INSERT INTO Drzava(naziv)
+VALUES('Slovenija'), ('Nemcija'), ('Japonska'), ('Italija'), ('Spanija');
+
+INSERT INTO Proizvajalec(ime, naslov, FK_Drzava)
+VALUES('Sloveni', 'Trzaska ul 2', 1), ('Habesi', 'Huwagwert 23', 2), ('Bonna piza', 'Italineea 12', 4), 
+('Japaneessi', 'Chiuashua she she', 3), ('Espanol', 'Espaana tarana 1', 5);
+
+INSERT INTO Sestavina_jedi(ime)
+VALUES('Krompir'), ('Riz'), ('Sol'), ('Poper'), ('Losos'),
+('Rezanci'), ('Borovnice'), ('Napitek'), ('Prigrizek'), ('Sladica');
+
+INSERT INTO Sestavina_proizvajalec(FK_Sestavina_jedi, FK_Proizvajalec)
+VALUES(10, 1), (1, 2), (1, 3), 
+(1, 4), (9, 5), (4, 1), 
+(4, 2), (2, 3), (4, 4), (5, 2), (3, 2), (10, 5), (8, 1), (6, 3);
+
+INSERT INTO Posta(naziv, stevilka, FK_Drzava)
+VALUES('Slovenska Bistrica', 1, 1), ('Celjansko', 3, 1), ('German post', 10, 2), 
+('taliano', 3, 3), ('Japan post', 20, 4), ('random Post', 3, 5), 
+('Bellow', 40, 2), ('PParis', 29, 2), ('Post', 2, 4), ('Posting post', 12, 3);
+
+INSERT INTO Naslov(ulica, hisna_st, FK_Posta)
+VALUES('Road to victory', 10, 1), ('Slovenska cesta', 2, 2), ('She she ti', 7, 3), 
+('Longtime road', 5, 4), ('Living hell', 28, 5), ('Macaarosi road', 2, 6), 
+('Dont know road', 11, 7), ('Brewing timing road', 9, 8), ('Haallo road', 1, 9), ('Unknown road', 10, 10);
+
+INSERT INTO Trgovina(ime, FK_Naslov)
+VALUES('Lidl', 1), ('Mercat', 4), ('Muller', 2), 
+('Hofer', 5), ('Interspar', 6), ('Jagee', 7), 
+('Palacinke', 4), ('Palacinke', 10), ('Palacinke', 9), ('Palacinke', 8);
+
+INSERT INTO Cena_sestavine(znesek, datum_od, datum_do, FK_Sestavina_jedi, FK_Trgovina)
+VALUES(0.30, '2022-05-22', NULL, 1, 1), (0.30, '2022-05-22', NULL, 2, 2),
+(1.30, '2020-05-23', '2024-05-03', 3, 3),(1.70, '2019-09-09', '2020-02-02', 9, 4),(0.60, '2002-05-22', NULL, 7, 5),
+(2.50, '2020-12-22', '2024-02-03', 10, 6),(1.50, '2024-03-22', NULL, 8, 7),(6.60, '2024-12-12', NULL, 5, 1),(4.00, '2022-02-11', NULL, 5, 10),
+(0.80, '2023-01-02', NULL, 4, 8),(2.50, '2024-02-12', NULL, 6, 9);
+
+ 
+INSERT INTO Sestavina_recept(kolicina, FK_Sestavina_jedi,  FK_Recept)
+VALUES(3, 1, 5), (1, 2, 8), (1, 3, 1), 
+(1,  4, 4), (2,  5, 4), (2, 6, 4), 
+(2, 7, 4), (1, 8, 4), (3, 9, 4), (3, 10, 4),
+(2, 1, 1), (1, 2, 4), (1, 3, 1), 
+(1,  4, 4), (1,  5, 4), (3, 6, 4), 
+(5, 7, 4), (2, 8, 4), (2, 9, 4), (3, 10, 5);
+
+
+
+
+
+# 1. V katerih trgovinah se dobijo vse sestavine za “srnin golaž”?
+SELECT t.ime AS Trgovina
+FROM Trgovina t
+JOIN Cena_sestavine cs ON t.id = cs.FK_Trgovina
+JOIN Sestavina_recept sr ON cs.FK_Sestavina_jedi = sr.FK_Sestavina_jedi
+JOIN Recept r ON sr.FK_Recept = r.id
+JOIN Jed j ON r.FK_Jed = j.id
+WHERE j.ime = 'Srnin golaz'
+GROUP BY t.ime
+HAVING COUNT(DISTINCT sr.FK_Sestavina_jedi) = (
+    SELECT COUNT(DISTINCT sr2.FK_Sestavina_jedi)
+    FROM Sestavina_recept sr2
+    JOIN Recept r2 ON sr2.FK_Recept = r2.id
+    JOIN Jed j2 ON r2.FK_Jed = j2.id
+    WHERE j2.ime = 'Srnin golaz'
+);
+
+# 2. Izpišite vse jedi in pripadajoče sestavine. Jedi naj se izpišejo, tudi če sestavin zanje še nismo vnesli.
+SELECT j.ime AS Jed, GROUP_CONCAT(sj.ime) AS Sestavine
+FROM Jed j
+LEFT JOIN Recept r ON j.id = r.FK_Jed
+LEFT JOIN Sestavina_recept sr ON r.id = sr.FK_Recept
+LEFT JOIN Sestavina_jedi sj ON sr.FK_Sestavina_jedi = sj.id
+GROUP BY j.ime
+ORDER BY j.ime;
+# 3. Izpišite jed “borovničeva torta” in količino posameznih sestavin v njej ter ceno posameznega artikla in 
+# 	 izračunajte končni znesek za vsako sestavino v jedi upoštevajoč tudi količino v jedi in količino pakiranja sestavine v trgovini.
+SELECT sj.ime AS Sestavina, sr.kolicina, cs.znesek AS Cena_na_enoto, (sr.kolicina * cs.znesek) AS Koncni_znesek
+FROM Recept r
+JOIN Jed j ON r.FK_Jed = j.id
+JOIN Sestavina_recept sr ON r.id = sr.FK_Recept
+JOIN Sestavina_jedi sj ON sr.FK_Sestavina_jedi = sj.id
+JOIN Cena_sestavine cs ON sj.id = cs.FK_Sestavina_jedi
+WHERE j.ime = 'Borovniceva pita'
+ORDER BY sj.ime;
+
+# 4. Izpiši število sestavin za posamezne recepte.
+SELECT r.id AS Recept_ID, j.ime AS Jed, COUNT(sr.FK_Sestavina_jedi) AS St_sestavin
+FROM Recept r
+JOIN Jed j ON r.FK_Jed = j.id
+LEFT JOIN Sestavina_recept sr ON r.id = sr.FK_Recept
+GROUP BY r.id, j.ime
+ORDER BY r.id;
+
+# 5. Iz katerega vira ima največ receptov?
+SELECT v.ime AS Vir, COUNT(vr.FK_Recept) AS Stevilo_Receptov
+FROM Vir v
+JOIN Vir_recept vr ON v.id = vr.FK_Vir
+GROUP BY v.ime
+HAVING COUNT(vr.FK_Recept) = (
+    SELECT MAX(SteviloReceptov)
+    FROM (
+        SELECT COUNT(vr2.FK_Recept) AS SteviloReceptov
+        FROM Vir_recept vr2
+        GROUP BY vr2.FK_Vir
+    ) AS ReceptCounts
+);
+
+
+# 6. V katerih trgovinah je cena sestavine “korenje” večja, kot je povprečna vrednost te sestavine v vseh trgovinah?
+SELECT t.ime AS Trgovina, cs.znesek AS Cena
+FROM Trgovina t
+JOIN Cena_sestavine cs ON t.id = cs.FK_Trgovina
+JOIN Sestavina_jedi sj ON cs.FK_Sestavina_jedi = sj.id
+WHERE sj.ime = 'Krompir'
+HAVING cs.znesek > (
+    SELECT AVG(cs2.znesek)
+    FROM Cena_sestavine cs2
+    JOIN Sestavina_jedi sj2 ON cs2.FK_Sestavina_jedi = sj2.id
+    WHERE sj2.ime = 'Krompir'
+);
+
+# 7. Spremeni številko strani vira “Kuharska knjiga za začetnike” v 45.
+UPDATE Vir
+SET stran = 45
+WHERE ime = 'Mochi';
+
+# 8. Izbriši sestavino “Krompir”
+DELETE FROM Sestavina_jedi
+WHERE ime = 'Krompir';
+SELECT * FROM Sestavina_jedi;
+
