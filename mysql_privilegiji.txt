@@ -1,0 +1,9 @@
+V ustvarjeni podatkovni bazi ustvarite 2 uporabnika - readonly in uporabnika z vašim imenom. Obema dodelite geslo. Uporabniku z vašim imenom dodelite pravice branja, pisanja, posodabljanja in brisanja samo za novo ustvarjeno bazo, uporabniku readonly pa samo možnosti izvajanja branja na vseh bazah
+
+
+CRREATE DATABASE new_database;
+CREATE USER 'readonly'@'localhost' IDENTIFIED BY 'readonly_password';
+CREATE USER 'anastazija'@'localhost' IDENTIFIED BY 'anastazija_password';
+
+GRANT SELECT ON *.* TO 'readonly'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON my_database.* TO 'anastazija'@'localhost';
