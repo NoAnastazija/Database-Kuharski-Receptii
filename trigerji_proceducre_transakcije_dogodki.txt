@@ -1,0 +1,262 @@
+USE student_predmet;
+# ------------------------------------
+# TRIGGERS
+# ------------------------------------
+
+SHOW TRIGGERS FROM student_predmet; 
+
+SET SQL_SAFE_UPDATES = 0;
+# ------------------------------------
+#Trigger - BEFORE INSERT (sprememba na velike črke pred vstavljanjem podatkov)
+# ------------------------------------
+DROP TRIGGER IF EXISTS predmet_z_veliko;
+CREATE TRIGGER predmet_z_veliko
+BEFORE INSERT ON predmet
+FOR EACH ROW
+SET NEW.naziv_predmeta = UPPER(NEW.naziv_predmeta); 
+
+
+SELECT * FROM predmet;
+INSERT INTO predmet VALUES (NULL, '61V018', 'Razvoj aplikacij za internet', 5); 
+SELECT * FROM predmet;
+
+# ------------------------------------
+#Trigger - AFTER INSERT (posodobitev povprečne ocene študenta glede na ocene v vpisu)
+# ------------------------------------
+#dodajanje stolpca za povprecno_oceno študenta
+SHOW COLUMNS FROM student;
+ALTER TABLE student ADD COLUMN povprecna_ocena DECIMAL(4,2);
+SHOW COLUMNS FROM student;
+
+SELECT * FROM student; 
+
+#izračun stolpca za povprečno oceno študenta 
+UPDATE student s JOIN
+		(SELECT TK_student, AVG(ocena) AS povprecna_ocena
+		FROM vpis
+		GROUP BY TK_student) v
+	ON s.ID_student=v.TK_student
+SET s.povprecna_ocena = v.povprecna_ocena;
+
+
+SELECT * FROM student; 
+
+#posodobitev povprečne ocene študenta vedno (prožilec) glede na ocene v vpisu. 
+SHOW TRIGGERS FROM student_predmet; 
+DROP TRIGGER IF EXISTS povprecna_ocena_studenta1;
+CREATE TRIGGER povprecna_ocena_studenta1
+AFTER INSERT ON vpis 
+FOR EACH ROW
+	UPDATE student s JOIN
+			(SELECT TK_student, AVG(ocena) AS povprecna_ocena
+			FROM vpis
+			GROUP BY TK_student) v
+		ON s.ID_student=v.TK_student
+	SET s.povprecna_ocena = v.povprecna_ocena;
+
+SELECT * FROM student;
+SELECT * FROM vpis;
+#dodajanje nove ocene v vpis in nato se izvede prožilec, kjer se izračuna nova povprečna ocena študenta. 
+INSERT INTO vpis (ocena, leto_vpisa, TK_student, TK_predmet) VALUES (10, '2020/2021', 1, 5);
+SELECT * FROM vpis;
+SELECT * FROM student;
+
+# ------------------------------------
+SHOW TRIGGERS FROM student_predmet; 
+DROP TRIGGER IF EXISTS povprecna_ocena_studenta2;
+
+DELIMITER $$
+CREATE TRIGGER povprecna_ocena_studenta2
+AFTER INSERT ON vpis 
+FOR EACH ROW
+BEGIN
+    SELECT AVG(ocena) INTO @povprecna_ocena FROM vpis WHERE TK_student = NEW.TK_student; #shranimo povprečno oceno v spremenljivko
+    
+    UPDATE student s 
+    SET s.povprecna_ocena = @povprecna_ocena
+    WHERE ID_student = NEW.TK_student;
+END $$
+DELIMITER ;
+
+SELECT * FROM student;
+SELECT * FROM vpis;
+#dodajanje nove ocene v vpis in nato se izvede prožilec, kjer se izračuna nova povprečna ocena študenta. 
+INSERT INTO vpis (ocena, leto_vpisa, TK_student, TK_predmet) VALUES (10, '2020/2021', 1, 5);
+SELECT * FROM vpis;
+SELECT * FROM student;
+
+# ------------------------------------
+#Trigger  AFTER UPDATE
+# ------------------------------------
+SHOW TRIGGERS FROM student_predmet; 
+DROP TABLE IF EXISTS ocene_predmetov;
+CREATE TABLE ocene_predmetov
+	(ID_ocena_pred INT auto_increment primary key,
+    datum_spremembe DATETIME,
+    ID_vpis INT,
+    ID_predmet INT,
+    ID_student INT,
+    ocena_prej DECIMAL(4,2),
+    ocena_potem DECIMAL(4,2)
+    );
+
+DROP TRIGGER IF EXISTS zgodovina_ocen;
+DELIMITER $$
+CREATE TRIGGER zgodovina_ocen 
+AFTER UPDATE ON vpis 
+FOR EACH ROW 
+BEGIN
+	INSERT INTO ocene_predmetov VALUES 
+		(NULL, NOW(), OLD.ID_vpis, OLD.TK_predmet, OLD.TK_student, OLD.ocena, NEW.ocena);
+	END$$
+DELIMITER ;
+
+SELECT * FROM ocene_predmetov;
+SELECT * FROM vpis; 
+UPDATE vpis SET ocena=8 WHERE ID_vpis=5; 
+SELECT * FROM ocene_predmetov;
+SELECT * FROM vpis; 
+ 
+SET SQL_SAFE_UPDATES = 1;
+
+# ------------------------------------
+#Transakcije
+# ------------------------------------
+
+USE student_predmet;
+
+SELECT * FROM student;
+SELECT * FROM vpis;
+SELECT * FROM predmet;
+
+-- 1. transakcija - uporabljat moramo InnoDB engine
+-- Primer z izvedeno transakcijo
+# spremenimo datum rojstva. ko je commit, ni več poti nazaj :) 
+
+START TRANSACTION;
+SELECT * FROM student;
+
+UPDATE student 
+#SET datum_rojstva = NULL
+SET datum_rojstva='2000-12-24' #Datum rojstva.
+WHERE ID_student=3;
+
+COMMIT;
+SELECT * FROM student;
+
+
+
+-- 2 rollback
+#zbrišemo in povrnemo
+
+START TRANSACTION;
+SELECT * FROM vpis;
+
+DELETE FROM vpis 
+WHERE vpis.ID_vpis > 2;
+
+SELECT * FROM vpis;
+ROLLBACK;
+
+SELECT * FROM vpis;
+
+-- 3. shranjevanje v spremenljivko
+SELECT * FROM student;
+UPDATE student SET povprecna_ocena = NULL WHERE ID_student=2;
+SELECT * FROM student;
+
+START TRANSACTION;
+SELECT @povprecna_ocena:= AVG(ocena) FROM vpis WHERE TK_student =2;
+UPDATE student SET povprecna_ocena = @povprecna_ocena WHERE ID_student=2;
+
+SELECT * FROM student;
+
+COMMIT;
+
+SELECT * FROM student;
+
+
+-- Iskanje naslednjega prostega IDja
+
+SELECT * FROM predmet;
+
+START TRANSACTION;
+
+SELECT @id_predmeta:=MAX(ID_predmet)+1
+FROM predmet;
+
+INSERT INTO predmet(ID_predmet, koda_predmeta, naziv_predmeta, tocke_ECTS)
+VALUES(@id_predmeta,'61V015','Uporabniški vmesniki',5);
+
+SELECT * FROM predmet;
+ROLLBACK;
+
+SELECT * FROM predmet;
+COMMIT;
+
+
+# ------------------------------------
+#STORED PROCEDURES
+# ------------------------------------
+
+use student_predmet;
+
+DELIMITER $$
+CREATE PROCEDURE pridobi_povprecne_ocene_studentov(IN id INT)
+BEGIN
+SELECT id_student, ime, priimek, AVG(ocena) as povpr_ocena 
+FROM vpis
+JOIN student ON vpis.TK_student = student.ID_student
+WHERE id_student = id
+GROUP BY TK_student;
+END $$
+DELIMITER ;
+
+
+CALL pridobi_povprecne_ocene_studentov(3);
+
+DROP PROCEDURE pridobi_povprecne_ocene_studentov;
+
+# ------------------------------------
+#shranjeni DOGODKI / EVENTS
+# ------------------------------------
+
+SET GLOBAL event_scheduler = ON; 
+
+SHOW PROCESSLIST;
+
+
+USE student_predmet;
+SHOW EVENTS FROM student_predmet;
+
+
+DELIMITER $$ 
+CREATE EVENT IF NOT EXISTS izvedi_postopek
+ON SCHEDULE 
+AT current_timestamp
+#EVERY 15 second
+DO 
+BEGIN
+CALL pridobi_povprecne_ocene_studentov(3);
+INSERT INTO student (ime, priimek, vpisna_st, datum_rojstva, email, visina, vpisni_stroski, spol, st_majice) 
+	VALUES ('test7', 'test7' , 'test7', '2001-03-15', 'test@epf.si', NULL, 15.78, 0, 3);
+END $$
+
+DELIMITER ; 
+
+DROP EVENT izvedi_postopek;
+
+# ------------------------------------
+#INDEKSIRANJE
+# ------------------------------------
+
+
+ALTER TABLE student
+ADD INDEX ( email ) USING BTREE;
+
+ALTER TABLE student
+DROP INDEX  email  ;
+
+SHOW COLUMNS from student_predmet.student;
+
+
